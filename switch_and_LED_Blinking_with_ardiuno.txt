@@ -1,0 +1,77 @@
+/*
+ * Project: LED Blinking with Button Control on Arduino
+ * Description: This program controls an LED connected to pin 13 on an Arduino board.
+ *              A button connected to pin 2 is used to change the LED's blinking speed.
+ *              Each button press adjusts the blinking frequency as follows:
+ *
+ *              - 1st Press: LED blinks at 0.5 Hz (1 sec ON, 1 sec OFF)
+ *              - 2nd Press: LED blinks at 1 Hz (0.5 sec ON, 0.5 sec OFF)
+ *              - 3rd Press: LED blinks at 2 Hz (0.25 sec ON, 0.25 sec OFF)
+ *              - 4th Press: LED turns OFF
+ *				- 5th Press: Return to 1St step
+ *              After the 4th press, the sequence resets to the first mode.
+ *              Button presses are detected using interrupts and debounced with a 200 ms delay.
+ *
+ * Author: Vinay Kumar K Deshpande
+ * Date: 06/02/2025
+ * 
+ * Hardware: Arduino Uno (or compatible)
+ * 
+ * Connections:
+ *  - LED: Pin 13
+ *  - Button: Pin 2 (configured with internal pull-up resistor)
+ */
+ 
+ 
+#define LED_PIN         13  
+#define BUTTON_PIN      2 
+
+volatile int pressCount = 0;  
+unsigned long previousMillis = 0;
+unsigned long blinkInterval = 0;
+bool ledState = LOW;
+
+void setup() {
+    pinMode(LED_PIN, OUTPUT);
+    pinMode(BUTTON_PIN, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), handleButtonPress, FALLING); 
+}
+
+void loop() {
+    switch (pressCount) {
+        case 1:
+            blinkInterval = 1000;  // 0.5 Hz (1 sec ON, 1 sec OFF)
+            break;
+        case 2:
+            blinkInterval = 500;   // 1 Hz (0.5 sec ON, 0.5 sec OFF)
+            break;
+        case 3:
+            blinkInterval = 250;   // 2 Hz (0.25 sec ON, 0.25 sec OFF)
+            break;
+        case 4:
+            digitalWrite(LED_PIN, LOW);  // Turn off LED
+            return;
+        default:
+            return;
+    }
+
+    unsigned long currentMillis = millis();
+    if (currentMillis - previousMillis >= blinkInterval) {
+        previousMillis = currentMillis;
+        ledState = !ledState;
+        digitalWrite(LED_PIN, ledState);
+    }
+}
+
+void handleButtonPress() {
+    static unsigned long lastInterruptTime = 0;
+    unsigned long interruptTime = millis();
+    if (interruptTime - lastInterruptTime > 200) {
+        pressCount++;
+        if (pressCount > 4) {
+            pressCount = 1;  
+        }
+    }
+    lastInterruptTime = interruptTime;
+}
+
